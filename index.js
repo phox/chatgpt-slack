@@ -61,11 +61,13 @@ slack_app.event("app_mention", async (obj) => {
 slack_app.message(async (obj) => {
     // Never process messages in DMs. Do not process messages which is channel, and channel is not in processors list.
     if (obj.message.channel && !(obj.message.channel in processors)) {
+        console.log("recieve message in channel: %s\n", obj.message.channel)
         return;
     }
     // if not channel messages or channel is in proccessors list
     // Do not response non-user messages. Do not response when messages are in threads.
     if (obj.message.channel && (obj.message.subtype || obj.message.thread_ts)) {
+        console.log("recieve message in channel: %s, and message type:%s\n", obj.message.channel, obj.message.subtype)
         return;
     }
 
@@ -73,6 +75,7 @@ slack_app.message(async (obj) => {
         const processor = processors[obj.message.channel];
         await process_message(processor, obj, obj.event);
     } else {
+        console.log("recieve message from user: %s\n", obj.message.user)
         if (!processors[obj.message.user]) {
             processors[obj.message.user] = new GeneralChatMessageProcessor(
                 openai,
