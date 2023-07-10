@@ -6,6 +6,10 @@ export default class MentionedChatMessageProcessor {
         this.slack_bot_id = slack_bot_id;
     }
 
+    update_bot_id(slack_bot_id) {
+        this.slack_bot_id = slack_bot_id;
+    }
+
     format_exc(error) {
         return "> " + error.toString().replaceAll("\n", "\n> ");
     }

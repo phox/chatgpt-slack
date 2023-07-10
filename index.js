@@ -15,6 +15,7 @@ import process_message from './utils/process_message.js';
 // Usage:
 //   db.data.xxx = xxx;
 //   await db.write();
+var botId = "";
 const db = new Low(new JSONFile(join(dirname(fileURLToPath(import.meta.url)), "database.json")));
 await db.read();
 
@@ -25,7 +26,7 @@ const openai = new OpenAIApi(new Configuration({
 
 // Processors
 const processors = {
-    "@": new MentionedChatMessageProcessor(openai, db.data.slack.bot_id),
+    "@": new MentionedChatMessageProcessor(openai, botId),
 };
 for (const channel of db.data.slack.general_chat_message.channels) {
     processors[channel] = new GeneralChatMessageProcessor(
@@ -40,6 +41,7 @@ for (const channel of db.data.slack.image.channels) {
 // Slack app
 const slack_app = new bolt.App({
     token: db.data.slack.bot_token,
+    signingSecret: db.data.slack.signing_secret,
     appToken: db.data.slack.app_token,
     socketMode: true,
 });
@@ -57,17 +59,29 @@ slack_app.event("app_mention", async (obj) => {
 });
 
 slack_app.message(async (obj) => {
-    // Never process messages in DMs. Do not process messages which channel is not in processors list.
-    if (!obj.message.channel || !(obj.message.channel in processors)) {
+    // Never process messages in DMs. Do not process messages which is channel, and channel is not in processors list.
+    if (obj.message.channel && !(obj.message.channel in processors)) {
         return;
     }
+    // if not channel messages or channel is in proccessors list
     // Do not response non-user messages. Do not response when messages are in threads.
-    if (obj.message.subtype || obj.message.thread_ts) {
+    if (obj.message.channel && (obj.message.subtype || obj.message.thread_ts)) {
         return;
     }
 
-    const processor = processors[obj.message.channel];
-    await process_message(processor, obj, obj.event);
+    if (obj.message.channel) {
+        const processor = processors[obj.message.channel];
+        await process_message(processor, obj, obj.event);
+    } else {
+        if (!processors[obj.message.user]) {
+            processors[obj.message.user] = new GeneralChatMessageProcessor(
+                openai,
+                db.data.slack.general_chat_message.history_size,
+                db.data.slack.general_chat_message.default_system_prompt);
+        }
+        const processor = processors[obj.message.user];
+        await process_message(processor, obj, obj.event);
+    }
 });
 
 slack_app.command("/reset", async (obj) => {
@@ -100,5 +114,10 @@ slack_app.command("/system", async (obj) => {
 // Main
 (async () => {
     await slack_app.start();
-    console.log('⚡️ Bolt app started');
+    var response = await slack_app.client.auth.test();
+    if ((response != null) && response.ok) {
+        botId = response.bot_id;
+        processors['@'].update_bot_id(botId)
+    }
+    console.log('⚡️ Bolt(%s) app started', botId);
 })();
