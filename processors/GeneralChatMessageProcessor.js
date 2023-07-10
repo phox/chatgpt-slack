@@ -16,7 +16,7 @@ export default class GeneralChatMessageProcessor {
     async build_bot_reply(user_id, request, reply) {
         return {
             //"text": `<@${user_id}> ${reply}`,
-            "text": `${reply}`,
+            "text": reply,
             "blocks": [
                 {
                     "type": "section",
@@ -24,22 +24,6 @@ export default class GeneralChatMessageProcessor {
                         "type": "mrkdwn",
                         "text": reply,
                     }
-                },
-                {
-                    "type": "divider"
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": `*<@${user_id}>*`
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": request,
-                        }
-                    ]
                 }
             ]
         };

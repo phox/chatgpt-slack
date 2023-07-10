@@ -59,32 +59,24 @@ slack_app.event("app_mention", async (obj) => {
 });
 
 slack_app.message(async (obj) => {
-    // Never process messages in DMs. Do not process messages which is channel, and channel is not in processors list.
-    if (obj.message.channel && !(obj.message.channel in processors)) {
-        console.log("recieve message in channel: %s\n", obj.message.channel)
-        return;
-    }
-    // if not channel messages or channel is in proccessors list
-    // Do not response non-user messages. Do not response when messages are in threads.
-    if (obj.message.channel && (obj.message.subtype || obj.message.thread_ts)) {
-        console.log("recieve message in channel: %s, and message type:%s\n", obj.message.channel, obj.message.subtype)
+    // Never process messages in DMs. Do not process messages which channel is not in processors list.
+    if (!obj.message.channel) {
         return;
     }
 
-    if (obj.message.channel) {
-        const processor = processors[obj.message.channel];
-        await process_message(processor, obj, obj.event);
-    } else {
-        console.log("recieve message from user: %s\n", obj.message.user)
-        if (!processors[obj.message.user]) {
-            processors[obj.message.user] = new GeneralChatMessageProcessor(
-                openai,
-                db.data.slack.general_chat_message.history_size,
-                db.data.slack.general_chat_message.default_system_prompt);
-        }
-        const processor = processors[obj.message.user];
-        await process_message(processor, obj, obj.event);
+    if (!(obj.message.channel in processors)) {
+        console.log(obj)
+        //To return channel id
+        console.log("\nchannel is %s\n", obj.message.channel)
+        return;
     }
+    // Do not response non-user messages. Do not response when messages are in threads.
+    if (obj.message.subtype || obj.message.thread_ts) {
+        return;
+    }
+
+    const processor = processors[obj.message.channel];
+    await process_message(processor, obj, obj.event);
 });
 
 slack_app.command("/reset", async (obj) => {
