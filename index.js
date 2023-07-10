@@ -65,7 +65,27 @@ slack_app.message(async (obj) => {
     }
 
     if (!(obj.message.channel in processors)) {
-        console.log(obj)
+        console.log(obj.say({
+            "text": `请将channel ID告诉管理员。\nChannel Id: ${obj.message.channel} `,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "请将channel ID告诉管理员。",
+                    }
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": `Channel Id: ${obj.message.channel}`,
+                        }
+                    ]
+                }
+            ]
+        }))
         //To return channel id
         console.log("\nchannel is %s\n", obj.message.channel)
         return;
